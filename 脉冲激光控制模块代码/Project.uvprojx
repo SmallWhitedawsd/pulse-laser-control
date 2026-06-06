@@ -663,8 +663,74 @@
               <FileType>5</FileType>
               <FilePath>.\Hardware\Serial.h</FilePath>
             </File>
+            <File>
+              <FileName>fifo.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Hardware\fifo.h</FilePath>
+            </File>
+            <File>
+              <FileName>timer2_capture.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Hardware\timer2_capture.c</FilePath>
+            </File>
+            <File>
+              <FileName>timer2_capture.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Hardware\timer2_capture.h</FilePath>
+            </File>
+            <File>
+              <FileName>timer3_gap.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Hardware\timer3_gap.c</FilePath>
+            </File>
+            <File>
+              <FileName>timer3_gap.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Hardware\timer3_gap.h</FilePath>
+            </File>
+            <File>
+              <FileName>timer4_pulse.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Hardware\timer4_pulse.c</FilePath>
+            </File>
+            <File>
+              <FileName>timer4_pulse.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Hardware\timer4_pulse.h</FilePath>
+            </File>
+            <File>
+              <FileName>state_machine.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Hardware\state_machine.c</FilePath>
+            </File>
+            <File>
+              <FileName>state_machine.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Hardware\state_machine.h</FilePath>
+            </File>
+            <File>
+              <FileName>uart_cmd.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Hardware\uart_cmd.c</FilePath>
+            </File>
+            <File>
+              <FileName>uart_cmd.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Hardware\uart_cmd.h</FilePath>
+            </File>
+            <File>
+              <FileName>param_store.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Hardware\param_store.c</FilePath>
+            </File>
+            <File>
+              <FileName>param_store.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Hardware\param_store.h</FilePath>
+            </File>
           </Files>
         </Group>
+
         <Group>
           <GroupName>User</GroupName>
           <Files>

@@ -1,0 +1,39 @@
+#include "state_machine.h"
+#include "fifo.h"
+#include "timer4_pulse.h"
+#include "timer3_gap.h"
+
+volatile OutState g_out_state = IDLE;
+volatile uint32_t g_gap_ms = 5000;	/* 默认间隙 5000ms = 5s */
+
+void process_pulse_output(void)
+{
+	switch (g_out_state) {
+
+	case IDLE:
+		if (!FIFO_IS_EMPTY()) {
+			uint16_t current_width = fifo_pop();
+
+			GPIO_SetBits(GPIOA, GPIO_Pin_1);		/* PA1 置高 */
+			Timer4_Start_us(current_width);			/* TIM4 计时脉宽 */
+			g_out_state = PULSE_OUT;
+		}
+		break;
+
+	case PULSE_OUT:
+		if (timer4_expired) {
+			timer4_expired = 0;
+
+			GPIO_ResetBits(GPIOA, GPIO_Pin_1);		/* PA1 置低 */
+			deadtime_start(g_gap_ms);				/* 启动间隙等待 */
+			g_out_state = GAP_WAIT;
+		}
+		break;
+
+	case GAP_WAIT:
+		if (deadtime_remaining_ms == 0) {
+			g_out_state = IDLE;
+		}
+		break;
+	}
+}
