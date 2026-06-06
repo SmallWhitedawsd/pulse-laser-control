@@ -1,0 +1,3 @@
+Objects/
+Listings/
+*.o *.d *.elf *.hex *.bin *.map *.axf *.lst *.uvguix.*
