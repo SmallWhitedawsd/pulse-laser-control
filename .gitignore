@@ -1,0 +1,27 @@
+# Environment variables (API keys, secrets)
+.env
+
+# IDE / editor artifacts
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Build outputs
+build/
+Objects/
+Listings/
+*.o
+*.d
+*.elf
+*.hex
+*.bin
+*.map
+*.axf
+*.lst
+*.uvguix.*
+
+# OS junk
+.DS_Store
+Thumbs.db
