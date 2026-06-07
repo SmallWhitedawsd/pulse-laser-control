@@ -9,9 +9,9 @@ void Timer2_Capture_Init(void)
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
 
-	/* PA0: TIM2_CH1, 浮空输入 */
+	/* PA0: TIM2_CH1, 下拉输入（防浮空噪声） */
 	GPIO_InitTypeDef GPIO_InitStructure;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPD;
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
@@ -46,6 +46,10 @@ void Timer2_Capture_Init(void)
 
 void Timer2_Capture_Enable(void)
 {
+	/* reset FIFO to empty, clear counter for a clean start */
+	fifo_head = fifo_tail = 0;
+	TIM_SetCounter(TIM2, 0);
+	TIM_ClearITPendingBit(TIM2, TIM_IT_CC1);
 	TIM_Cmd(TIM2, ENABLE);
 }
 
