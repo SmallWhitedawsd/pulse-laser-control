@@ -663,26 +663,6 @@
               <FileType>5</FileType>
               <FilePath>.\Hardware\Serial.h</FilePath>
             </File>
-            <File>
-              <FileName>generator.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Hardware\generator.c</FilePath>
-            </File>
-            <File>
-              <FileName>generator.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Hardware\generator.h</FilePath>
-            </File>
-            <File>
-              <FileName>uart_cmd.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Hardware\uart_cmd.c</FilePath>
-            </File>
-            <File>
-              <FileName>uart_cmd.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Hardware\uart_cmd.h</FilePath>
-            </File>
           </Files>
         </Group>
         <Group>

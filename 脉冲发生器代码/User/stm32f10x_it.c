@@ -1,28 +1,17 @@
 /**
   * @file    stm32f10x_it.c
-  * @brief   Cortex-M3 exception handlers.
-  *   Peripheral ISRs are in their respective driver files:
-  *     USART1_IRQHandler -> Hardware/Serial.c
-  *     TIM2_IRQHandler   -> Hardware/generator.c
-  *     TIM3_IRQHandler   -> Hardware/generator.c
+  * @brief   Cortex-M3 exception handlers only.
+  *   All peripheral ISRs are in User/main.c
   */
 
 #include "stm32f10x_it.h"
 
 void NMI_Handler(void) {}
-
 void HardFault_Handler(void)  { while (1); }
-
 void MemManage_Handler(void)  { while (1); }
-
 void BusFault_Handler(void)   { while (1); }
-
 void UsageFault_Handler(void) { while (1); }
-
 void SVC_Handler(void) {}
-
 void DebugMon_Handler(void) {}
-
 void PendSV_Handler(void) {}
-
 void SysTick_Handler(void) {}
