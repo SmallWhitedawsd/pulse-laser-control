@@ -3,7 +3,7 @@
 #ifndef __SERIAL_H
 #define __SERIAL_H
 
-#include <stdio.h>
+#include "stm32f10x.h"
 
 extern uint8_t uart_rx_data;
 extern uint8_t uart_rx_flag;

@@ -1,6 +1,7 @@
 /* serial.c */
 
 #include "stm32f10x.h"
+#include <stdio.h>
 #include <stdarg.h>
 #include "serial.h"
 

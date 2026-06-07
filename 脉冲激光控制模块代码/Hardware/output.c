@@ -46,7 +46,7 @@ void Output_Init(void)
 	/* === TIM3: 1 kHz (1 ms tick) === */
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
 	t.TIM_Period    = 1000 - 1;
-	t.TIM_Prescaler = 72000 - 1;
+	t.TIM_Prescaler = 72000UL - 1;
 	t.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseInit(TIM3, &t);
 	TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
