@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-/* ========== ä¸²å£ ========== */
+/* ========== ´®¿Ú ========== */
 uint8_t  Serial_RxData;
 uint8_t  Serial_RxFlag;
 char     cmd_buf[32];
@@ -66,10 +66,10 @@ void UART_Printf(const char *fmt, ...)
 	UART_SendStr(buf);
 }
 
-/* ========== è„‰å†²å‘ç”Ÿå™¨å‚æ•° ========== */
+/* ========== Âö³å·¢ÉúÆ÷²ÎÊý ========== */
 uint32_t gen_freq      = 10000;    /* 1KHz~100KHz */
 uint32_t gen_duty      = 50;       /* 1~99% */
-uint32_t gen_count     = 5;        /* æ¯è½®è„‰å†²æ•° */
+uint32_t gen_count     = 5;        /* Ã¿ÂÖÂö³åÊý */
 uint8_t  gen_running   = 0;
 uint32_t gen_cur_pulse = 0;
 uint32_t gen_rounds    = 0;
@@ -77,10 +77,10 @@ uint32_t gen_rounds    = 0;
 uint32_t pulse_cnt      = 0;
 uint8_t  timer_inited   = 0;
 
-/* ========== å®šæ—¶å™¨ç¡¬ä»¶åˆå§‹åŒ–ï¼ˆSTART æ—¶æ‰è°ƒç”¨ï¼‰ ========== */
+/* ========== ¶¨Ê±Æ÷Ó²¼þ³õÊ¼»¯£¨START Ê±²Åµ÷ÓÃ£© ========== */
 void Timer_Hardware_Init(void)
 {
-	/* PA6 â†’ TIM3_CH1 PWM è¾“å‡º */
+	/* PA6 ¡ú TIM3_CH1 PWM Êä³ö */
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
 	GPIO_InitTypeDef gpio = {0};
 	gpio.GPIO_Mode  = GPIO_Mode_AF_PP;
@@ -112,7 +112,7 @@ void Timer_Hardware_Init(void)
 	nvic.NVIC_IRQChannelSubPriority = 0;
 	NVIC_Init(&nvic);
 
-	/* TIM2: 5s é—´éš” */
+	/* TIM2: 5s ¼ä¸ô */
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
 	tim.TIM_Period    = 50000 - 1;
 	tim.TIM_Prescaler = 7200 - 1;
@@ -159,7 +159,7 @@ void Generator_Start(void)
 	TIM_SetCounter(TIM2, 0);
 	TIM_Cmd(TIM2, ENABLE);
 	TIM_Cmd(TIM3, ENABLE);
-	UART_SendStr("å·²å¯åŠ¨, æ¯5ç§’å‘å‡ºä¸€è½®è„‰å†²\r\n");
+	UART_SendStr("ÒÑÆô¶¯, Ã¿5Ãë·¢³öÒ»ÂÖÂö³å\r\n");
 }
 
 void Generator_Stop(void)
@@ -167,10 +167,10 @@ void Generator_Stop(void)
 	gen_running = 0;
 	TIM_Cmd(TIM2, DISABLE);
 	TIM_Cmd(TIM3, DISABLE);
-	UART_SendStr("å·²åœæ­¢\r\n");
+	UART_SendStr("ÒÑÍ£Ö¹\r\n");
 }
 
-/* ========== å‘½ä»¤è§£æž ========== */
+/* ========== ÃüÁî½âÎö ========== */
 void ParseCommand(void)
 {
 	if      (strncmp(cmd_buf, "FREQ=", 5) == 0) {
@@ -178,49 +178,49 @@ void ParseCommand(void)
 		if (v >= 1000 && v <= 100000) {
 			gen_freq = v;
 			if (timer_inited) Update_PWM_Params();
-			UART_Printf("OK é¢‘çŽ‡=%dHz\r\n", v);
-		} else UART_SendStr("é”™è¯¯: é¢‘çŽ‡èŒƒå›´1000~100000Hz\r\n");
+			UART_Printf("OK ÆµÂÊ=%dHz\r\n", v);
+		} else UART_SendStr("´íÎó: ÆµÂÊ·¶Î§1000~100000Hz\r\n");
 	}
 	else if (strncmp(cmd_buf, "DUTY=", 5) == 0) {
 		int v = atoi(cmd_buf + 5);
 		if (v >= 1 && v <= 99) {
 			gen_duty = v;
 			if (timer_inited) Update_PWM_Params();
-			UART_Printf("OK å ç©ºæ¯”=%d%%\r\n", v);
-		} else UART_SendStr("é”™è¯¯: å ç©ºæ¯”èŒƒå›´1~99%\r\n");
+			UART_Printf("OK Õ¼¿Õ±È=%d%%\r\n", v);
+		} else UART_SendStr("´íÎó: Õ¼¿Õ±È·¶Î§1~99%\r\n");
 	}
 	else if (strncmp(cmd_buf, "PULSES=", 7) == 0) {
 		int v = atoi(cmd_buf + 7);
 		if (v >= 1 && v <= 500) {
 			gen_count = v;
-			UART_Printf("OK æ¯è½®è„‰å†²æ•°=%d\r\n", v);
-		} else UART_SendStr("é”™è¯¯: è„‰å†²æ•°èŒƒå›´1~500\r\n");
+			UART_Printf("OK Ã¿ÂÖÂö³åÊý=%d\r\n", v);
+		} else UART_SendStr("´íÎó: Âö³åÊý·¶Î§1~500\r\n");
 	}
 	else if (strcmp(cmd_buf, "START") == 0) {
 		if (!gen_running) Generator_Start();
-		else UART_SendStr("å·²åœ¨è¿è¡Œä¸­\r\n");
+		else UART_SendStr("ÒÑÔÚÔËÐÐÖÐ\r\n");
 	}
 	else if (strcmp(cmd_buf, "STOP") == 0) {
 		Generator_Stop();
 	}
 	else if (strcmp(cmd_buf, "STATUS?") == 0) {
 		UART_Printf(
-			"çŠ¶æ€=%s é¢‘çŽ‡=%luHz å ç©ºæ¯”=%lu%% æ¯è½®è„‰å†²=%lu å½“å‰=%lu å·²å‘è½®æ•°=%lu\r\n",
-			gen_running ? "è¿è¡Œä¸­" : "å·²åœæ­¢",
+			"×´Ì¬=%s ÆµÂÊ=%luHz Õ¼¿Õ±È=%lu%% Ã¿ÂÖÂö³å=%lu µ±Ç°=%lu ÒÑ·¢ÂÖÊý=%lu\r\n",
+			gen_running ? "ÔËÐÐÖÐ" : "ÒÑÍ£Ö¹",
 			gen_freq, gen_duty, gen_count, gen_cur_pulse, gen_rounds);
 	}
 	else if (strcmp(cmd_buf, "HELP") == 0) {
 		UART_SendStr(
-			"===== è„‰å†²å‘ç”Ÿå™¨å‘½ä»¤ =====\r\n"
-			"FREQ=10000    é¢‘çŽ‡ Hz (1000~100000)\r\n"
-			"DUTY=50       å ç©ºæ¯” % (1~99)\r\n"
-			"PULSES=5      æ¯è½®è„‰å†²æ•° (1~500)\r\n"
-			"START         å¯åŠ¨ (æ¯5ç§’ä¸€è½®)\r\n"
-			"STOP          åœæ­¢\r\n"
-			"STATUS?       æŸ¥çœ‹å½“å‰çŠ¶æ€\r\n"
-			"HELP          æ˜¾ç¤ºå¸®åŠ©\r\n");
+			"===== Âö³å·¢ÉúÆ÷ÃüÁî =====\r\n"
+			"FREQ=10000    ÆµÂÊ Hz (1000~100000)\r\n"
+			"DUTY=50       Õ¼¿Õ±È % (1~99)\r\n"
+			"PULSES=5      Ã¿ÂÖÂö³åÊý (1~500)\r\n"
+			"START         Æô¶¯ (Ã¿5ÃëÒ»ÂÖ)\r\n"
+			"STOP          Í£Ö¹\r\n"
+			"STATUS?       ²é¿´µ±Ç°×´Ì¬\r\n"
+			"HELP          ÏÔÊ¾°ïÖú\r\n");
 	}
-	else UART_SendStr("é”™è¯¯: æ— æ•ˆå‘½ä»¤, å‘é€ HELP æŸ¥çœ‹å¸®åŠ©\r\n");
+	else UART_SendStr("´íÎó: ÎÞÐ§ÃüÁî, ·¢ËÍ HELP ²é¿´°ïÖú\r\n");
 }
 
 /* ========== ISR ========== */
@@ -259,14 +259,14 @@ void TIM3_IRQHandler(void)
 	}
 }
 
-/* ========== ä¸»å¾ªçŽ¯ ========== */
+/* ========== Ö÷Ñ­»· ========== */
 int main(void)
 {
 	UART_Init();
 
-	UART_SendStr("\r\n===== è„‰å†²å‘ç”Ÿå™¨ V1 =====\r\n");
-	UART_Printf("é¢‘çŽ‡=%luHz å ç©ºæ¯”=%lu%% æ¯è½®è„‰å†²=%lu\r\n", gen_freq, gen_duty, gen_count);
-	UART_SendStr("å‘é€ HELP æŸ¥çœ‹å‘½ä»¤åˆ—è¡¨\r\n");
+	UART_SendStr("\r\n===== Âö³å·¢ÉúÆ÷ V1 =====\r\n");
+	UART_Printf("ÆµÂÊ=%luHz Õ¼¿Õ±È=%lu%% Ã¿ÂÖÂö³å=%lu\r\n", gen_freq, gen_duty, gen_count);
+	UART_SendStr("·¢ËÍ HELP ²é¿´ÃüÁîÁÐ±í\r\n");
 
 	while (1) {
 		while (Serial_RxFlag) {
