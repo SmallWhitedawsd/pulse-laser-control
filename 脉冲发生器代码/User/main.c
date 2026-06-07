@@ -173,7 +173,25 @@ void Generator_Stop(void)
 /* ========== Command Parser ========== */
 void ParseCommand(void)
 {
-	if      (strncmp(cmd_buf, "FREQ=", 5) == 0) {
+	/* ── combo: F=10000 D=50 N=10  (one line, space-separated, no prefix) ── */
+	{
+		uint32_t fv = 0, dv = 0, nv = 0;
+		if (sscanf(cmd_buf, "F=%lu D=%lu N=%lu", &fv, &dv, &nv) == 3) {
+			if (fv >= 1000 && fv <= 100000 && dv >= 1 && dv <= 99 && nv >= 1 && nv <= 500) {
+				gen_freq  = fv;
+				gen_duty  = dv;
+				gen_count = nv;
+				if (timer_inited) Update_PWM_Params();
+				UART_Printf("OK F=%luHz D=%lu%% N=%lu\r\n", fv, dv, nv);
+			} else {
+				UART_SendStr("ERR RANGE\r\n");
+			}
+			return;
+		}
+	}
+
+	/* ── legacy single-param commands ── */
+	if (strncmp(cmd_buf, "FREQ=", 5) == 0) {
 		int v = atoi(cmd_buf + 5);
 		if (v >= 1000 && v <= 100000) {
 			gen_freq = v;
@@ -211,9 +229,8 @@ void ParseCommand(void)
 	}
 	else if (strcmp(cmd_buf, "HELP") == 0) {
 		UART_SendStr(
-			"FREQ=xxx   Hz (1000~100000)\r\n"
-			"DUTY=xx    %% (1~99)\r\n"
-			"PULSES=N   Per round (1~500)\r\n"
+			"F=10000 D=50 N=10    Set all at once\r\n"
+			"FREQ=xxx/DUTY=xx/PULSES=N (single)\r\n"
 			"START/STOP/STATUS?/HELP\r\n");
 	}
 	else UART_SendStr("ERR FORMAT\r\n");
