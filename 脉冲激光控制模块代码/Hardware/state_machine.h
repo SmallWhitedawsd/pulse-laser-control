@@ -11,6 +11,7 @@ typedef enum {
 
 extern volatile OutState g_out_state;
 extern volatile uint32_t g_gap_ms;
+extern volatile uint32_t g_out_count;
 
 void process_pulse_output(void);
 

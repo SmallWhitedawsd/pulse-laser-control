@@ -39,10 +39,10 @@ void process_uart_command(void)
 			}
 			else if (strcmp(cmd_buf, "STATUS?") == 0) {
 				uint16_t count = (fifo_head - fifo_tail) & FIFO_MASK;
-				Serial_Printf("STATE=%s GAP=%lums FIFO=%d\r\n",
-					g_out_state == IDLE ? "IDLE" :
-					g_out_state == PULSE_OUT ? "PULSE_OUT" : "GAP_WAIT",
-					g_gap_ms, count);
+				Serial_Printf("S=%s G=%lums IN=%d OUT=%lu\r\n",
+					g_out_state == IDLE ? "I" :
+					g_out_state == PULSE_OUT ? "P" : "W",
+					g_gap_ms, count, g_out_count);
 			}
 			else if (strcmp(cmd_buf, "HELP") == 0) {
 				Serial_SendString(

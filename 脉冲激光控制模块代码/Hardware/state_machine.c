@@ -5,6 +5,7 @@
 
 volatile OutState g_out_state = IDLE;
 volatile uint32_t g_gap_ms = 100;	/* 默认间隙 100ms */
+volatile uint32_t g_out_count = 0;	/* 已输出脉冲计数 */
 
 void process_pulse_output(void)
 {
@@ -15,6 +16,7 @@ void process_pulse_output(void)
 			uint16_t current_width = fifo_pop();
 
 			GPIO_SetBits(GPIOA, GPIO_Pin_1);		/* PA1 置高 */
+			GPIO_ResetBits(GPIOC, GPIO_Pin_13);		/* LED亮 */
 			Timer4_Start_us(current_width);			/* TIM4 计时脉宽 */
 			g_out_state = PULSE_OUT;
 		}
@@ -25,7 +27,9 @@ void process_pulse_output(void)
 			timer4_expired = 0;
 
 			GPIO_ResetBits(GPIOA, GPIO_Pin_1);		/* PA1 置低 */
-			deadtime_start(g_gap_ms);				/* 启动间隙等待 */
+			GPIO_SetBits(GPIOC, GPIO_Pin_13);		/* LED灭 */
+			g_out_count++;					/* 脉冲计数+1 */
+			deadtime_start(g_gap_ms);			/* 启动间隙等待 */
 			g_out_state = GAP_WAIT;
 		}
 		break;
