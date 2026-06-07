@@ -70,11 +70,13 @@ void UART_Printf(const char *fmt, ...)
 uint32_t gen_freq      = 10000;
 uint32_t gen_duty      = 50;
 uint32_t gen_count     = 5;
+uint32_t gen_interval  = 1;       /* 间隔秒数, 默认1秒 */
 uint8_t  gen_running   = 0;
 uint32_t gen_cur_pulse = 0;
 uint32_t gen_rounds    = 0;
 
 uint32_t pulse_cnt      = 0;
+uint32_t interval_cnt   = 0;   /* TIM2 秒计数器 */
 uint8_t  timer_inited   = 0;
 
 /* ========== Timer Hardware Init (delayed until START) ========== */
@@ -112,10 +114,10 @@ void Timer_Hardware_Init(void)
 	nvic.NVIC_IRQChannelSubPriority = 0;
 	NVIC_Init(&nvic);
 
-	/* TIM2: 5s interval */
+	/* TIM2: 1s base interval (software counter extends) */
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
-	tim.TIM_Period    = 10000 - 1;  /* 1s: 72000000/7200=10000Hz, 10000tick=1s */
-	tim.TIM_Prescaler = 7200 - 1;
+	tim.TIM_Period    = 10000 - 1;   /* 1s per overflow */
+	tim.TIM_Prescaler = 7200 - 1;    /* 10KHz tick */
 	TIM_TimeBaseInit(TIM2, &tim);
 	TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
 
@@ -132,15 +134,28 @@ void Update_PWM_Params(void)
 	if (f < 1000) f = 1000; if (f > 100000) f = 100000;
 	if (d < 1)    d = 1;    if (d > 99)       d = 99;
 
+	/* target ARR >= 200 for good PWM resolution; fallback to ARR>=100 */
 	uint32_t arr = 999;
 	uint32_t psc = 72000000UL / (f * (arr + 1));
-	if (psc == 0) { psc = 1; arr = 72000000UL / f - 1; }
+	if (psc == 0) {
+		arr = 199;
+		psc = 72000000UL / (f * (arr + 1));
+		if (psc == 0) {
+			arr = 99;
+			psc = 72000000UL / (f * (arr + 1));
+			if (psc == 0) {
+				psc = 1;
+				arr = 72000000UL / f - 1;
+			}
+		}
+	}
 	if (arr > 65535) {
 		arr = 65535;
 		psc = 72000000UL / (f * (arr + 1));
 		if (psc == 0) psc = 1;
 	}
 	uint32_t ccr = (uint32_t)((uint64_t)(arr + 1) * d / 100);
+	if (ccr == 0 || ccr >= arr) ccr = arr / 2; /* safety: 50% */
 	if (ccr > arr) ccr = arr;
 
 	TIM_Cmd(TIM3, DISABLE);
@@ -155,6 +170,7 @@ void Generator_Start(void)
 	gen_running   = 1;
 	pulse_cnt     = 0;
 	gen_cur_pulse = 0;
+	interval_cnt  = gen_interval - 1; /* first round fires immediately */
 	Update_PWM_Params();
 	TIM3->CCMR1 = (TIM3->CCMR1 & ~0x0070) | 0x0060; /* restore PWM1 mode */
 	TIM_SetCounter(TIM3, 0);
@@ -167,6 +183,7 @@ void Generator_Start(void)
 void Generator_Stop(void)
 {
 	gen_running = 0;
+	interval_cnt = 0;
 	TIM_Cmd(TIM2, DISABLE);
 	TIM_Cmd(TIM3, DISABLE);
 	/* 强制 PA6 输出低电平 */
@@ -175,23 +192,40 @@ void Generator_Stop(void)
 }
 
 /* ========== Command Parser ========== */
+int extract_num(const char *s, const char *key)
+{
+	char *p = strstr(s, key);
+	return p ? atoi(p + strlen(key)) : 0;
+}
+
 void ParseCommand(void)
 {
-	uint32_t fv = 0, dv = 0, nv = 0;
+	uint32_t fv = 0, dv = 0, nv = 0, tv = 0;
 	int has_start = (strstr(cmd_buf, "START") != NULL);
-	/* scan from "F=" wherever it appears in the string */
-	char *fp = strstr(cmd_buf, "F=");
-	int has_params = (fp && sscanf(fp, "F=%lu D=%lu N=%lu", &fv, &dv, &nv) == 3);
+	int has_f = (strstr(cmd_buf, "F=") != NULL);
+	int has_d = (strstr(cmd_buf, "D=") != NULL);
+	int has_n = (strstr(cmd_buf, "N=") != NULL);
+	int has_t = (strstr(cmd_buf, "T=") != NULL);
+	int has_params = (has_f && has_d && has_n);
 
-	/* ── START F=10000 D=50 N=10  or  F=10000 D=50 N=10 START ── */
+	if (has_params) {
+		fv = extract_num(cmd_buf, "F=");
+		dv = extract_num(cmd_buf, "D=");
+		nv = extract_num(cmd_buf, "N=");
+		if (has_t) {
+			tv = extract_num(cmd_buf, "T=");
+			if (tv >= 1 && tv <= 3600) gen_interval = tv;
+		}
+	}
+
+	/* ── START F=10000 D=50 N=10 ── */
 	if (has_start && has_params) {
-		if (fv >= 1000 && fv <= 100000 && dv >= 1 && dv <= 99 && nv >= 1 && nv <= 500) {
+		if (fv >= 1000 && fv <= 100000 && dv >= 1 && dv <= 99 && nv >= 1 && nv <= 100000) {
 			gen_freq  = fv;
 			gen_duty  = dv;
 			gen_count = nv;
 			if (!gen_running) {
 				Generator_Start();
-				/* Update_PWM_Params called inside Generator_Start */
 			} else {
 				if (timer_inited) Update_PWM_Params();
 				UART_SendStr("ALREADY RUNNING\r\n");
@@ -203,17 +237,27 @@ void ParseCommand(void)
 		}
 	}
 
-	/* ── combo: F=10000 D=50 N=10 (set only, no start) ── */
+	/* ── F=10000 D=50 N=10 (set only) ── */
 	if (has_params) {
-		if (fv >= 1000 && fv <= 100000 && dv >= 1 && dv <= 99 && nv >= 1 && nv <= 500) {
+		if (fv >= 1000 && fv <= 100000 && dv >= 1 && dv <= 99 && nv >= 1 && nv <= 100000) {
 			gen_freq  = fv;
 			gen_duty  = dv;
 			gen_count = nv;
 			if (timer_inited) Update_PWM_Params();
-			UART_Printf("OK F=%luHz D=%lu%% N=%lu\r\n", fv, dv, nv);
+			UART_Printf("OK F=%luHz D=%lu%% N=%lu T=%lus\r\n", fv, dv, nv, gen_interval);
 		} else {
 			UART_SendStr("ERR RANGE\r\n");
 		}
+		return;
+	}
+
+	/* ── T= parameter only ── */
+	if (has_t) {
+		tv = extract_num(cmd_buf, "T=");
+		if (tv >= 1 && tv <= 3600) {
+			gen_interval = tv;
+			UART_Printf("OK T=%lus\r\n", tv);
+		} else UART_SendStr("ERR RANGE (1~3600)\r\n");
 		return;
 	}
 
@@ -236,7 +280,7 @@ void ParseCommand(void)
 	}
 	else if (strncmp(cmd_buf, "PULSES=", 7) == 0) {
 		int v = atoi(cmd_buf + 7);
-		if (v >= 1 && v <= 500) {
+		if (v >= 1 && v <= 100000) {
 			gen_count = v;
 			UART_Printf("OK PULSES=%d\r\n", v);
 		} else UART_SendStr("ERR RANGE\r\n");
@@ -250,15 +294,15 @@ void ParseCommand(void)
 	}
 	else if (strcmp(cmd_buf, "STATUS?") == 0) {
 		UART_Printf(
-			"S=%s F=%luHz D=%lu%% N=%lu C=%lu R=%lu\r\n",
+			"S=%s F=%luHz D=%lu%% N=%lu C=%lu R=%lu T=%lus\r\n",
 			gen_running ? "RUN" : "STOP",
-			gen_freq, gen_duty, gen_count, gen_cur_pulse, gen_rounds);
+			gen_freq, gen_duty, gen_count, gen_cur_pulse, gen_rounds, gen_interval);
 	}
 	else if (strcmp(cmd_buf, "HELP") == 0) {
 		UART_SendStr(
-			"F=10000 D=50 N=10    Set all at once\r\n"
-			"FREQ=xxx/DUTY=xx/PULSES=N (single)\r\n"
-			"START/STOP/STATUS?/HELP\r\n");
+			"F=10000 D=50 N=10 T=1   Set all (Hz / % / count / sec)\r\n"
+			"START F=10000 D=50 N=10 T=1  Set + start\r\n"
+			"STOP / STATUS? / HELP\r\n");
 	}
 	else UART_SendStr("ERR FORMAT\r\n");
 }
@@ -278,11 +322,15 @@ void TIM2_IRQHandler(void)
 	if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET) {
 		TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
 		if (gen_running) {
-			pulse_cnt     = 0;
-			gen_cur_pulse = 0;
-			Update_PWM_Params();
-			TIM3->CCMR1 = (TIM3->CCMR1 & ~0x0070) | 0x0060;
-			TIM_Cmd(TIM3, ENABLE);
+			interval_cnt++;
+			if (interval_cnt >= gen_interval) {
+				interval_cnt  = 0;
+				pulse_cnt     = 0;
+				gen_cur_pulse = 0;
+				Update_PWM_Params();
+				TIM3->CCMR1 = (TIM3->CCMR1 & ~0x0070) | 0x0060;
+				TIM_Cmd(TIM3, ENABLE);
+			}
 		}
 	}
 }
@@ -315,7 +363,7 @@ int main(void)
 	GPIO_Init(GPIOA, &gpio);
 	GPIO_ResetBits(GPIOA, GPIO_Pin_6);
 
-	UART_SendStr("Pulse Gen v1 (START to begin)\r\n");
+	UART_SendStr("Pulse Gen v1 (F=Hz D=% N=count T=sec)\r\n");
 
 	while (1) {
 		while (uart_rx_flag) {
