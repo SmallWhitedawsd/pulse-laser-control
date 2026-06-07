@@ -26,7 +26,7 @@ void process_uart_command(void)
 			/* ── 解析命令 ── */
 			if (strncmp(cmd_buf, "GAP=", 4) == 0) {
 				uint32_t val = atoi(cmd_buf + 4);
-				if (val >= 100 && val <= 50000) {
+				if (val >= 1 && val <= 50000) {
 					g_gap_ms = val;
 					Serial_Printf("OK GAP=%lums\r\n", val);
 				} else {
