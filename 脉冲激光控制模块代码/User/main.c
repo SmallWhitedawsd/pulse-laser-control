@@ -1,11 +1,12 @@
 /* main.c — Pulse Laser Control Module
  *
  * PA0 (TIM2 CH1) ← input pulse train (1kHz–100kHz, 1–N pulses)
- * PA1 (GPIO)     → output: clone HIGH width, replace LOW gap with GAP ms
+ * PA1 (GPIO)     → output: clone HIGH width, replace LOW gap with gap_ms
  *
  * Dataflow:
- *   input → capture.c (measure HIGH width, push to fifo)
- *         → output.c  (pop from fifo, drive PA1, TIM4=width, TIM3=gap)
+ *   input → capture.c (measure HIGH width + LOW gap, push tagged to fifo)
+ *         → output.c  (pop width from fifo, drive PA1 via TIM4;
+ *                       discard fifo gap, use TIM3+gap_ms for LOW)
  */
 
 #include "stm32f10x.h"

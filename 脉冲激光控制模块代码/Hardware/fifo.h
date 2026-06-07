@@ -8,6 +8,8 @@
 #define FIFO_N  1024           /* must be power-of-2 */
 #define FIFO_M  (FIFO_N - 1)
 
+#define FIFO_TAG_GAP  0x8000U   /* bit15 tag: entry is a low-gap, not a width */
+
 extern volatile uint16_t fifo[FIFO_N];
 extern volatile uint16_t fifo_wr;   /* write index (ISR) */
 extern volatile uint16_t fifo_rd;   /* read  index (main) */

@@ -1,13 +1,16 @@
 /* capture.c - TIM2 CH1 double-edge capture on PA0 (pull-down)
  *
- * Producer: ISR measures input high-pulse width (μs), pushes to fifo.
+ * Producer: ISR measures input high-pulse width (μs) and low-gap (μs),
+ * pushes both to fifo as alternating [width, gap, width, gap, …].
  * Does NOT touch PA1 or state machine — fully decoupled.
  */
 
 #include "capture.h"
 #include "fifo.h"
 
-static volatile uint16_t start = 0;
+static volatile uint16_t start      = 0;
+static volatile uint16_t prev_fall  = 0;
+static volatile uint8_t  first_edge = 1;
 
 void Capture_Init(void)
 {
@@ -48,6 +51,7 @@ void Capture_Init(void)
 void Capture_Start(void)
 {
 	fifo_reset();
+	first_edge = 1;
 	TIM_SetCounter(TIM2, 0);
 	TIM_ClearITPendingBit(TIM2, TIM_IT_CC1);
 	TIM_Cmd(TIM2, ENABLE);
@@ -60,13 +64,22 @@ void TIM2_IRQHandler(void)
 		uint16_t now = TIM_GetCapture1(TIM2);
 
 		if (TIM2->CCER & TIM_CCER_CC1P) {
-			/* falling edge → width μs, force unsigned to survive TIM2 16-bit wrap */
+			/* falling edge → high-pulse width (μs) */
 			uint16_t w = (uint16_t)(now - start) / 72U;
 			if (w > 0 && !fifo_full()) {
 				fifo_push(w);
 			}
+			prev_fall = now;
 		} else {
-			/* rising edge → record start */
+			/* rising edge → push low-gap (μs), then record start */
+			if (!first_edge) {
+				uint16_t g = (uint16_t)(now - prev_fall) / 72U;
+				if (g > 0 && !fifo_full()) {
+					fifo_push(g | FIFO_TAG_GAP);   /* tag: high bit = gap */
+				}
+			} else {
+				first_edge = 0;
+			}
 			start = now;
 		}
 		TIM2->CCER ^= TIM_CCER_CC1P;
