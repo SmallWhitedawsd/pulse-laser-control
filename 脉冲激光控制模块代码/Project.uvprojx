@@ -654,14 +654,14 @@
           <GroupName>Hardware</GroupName>
           <Files>
             <File>
-              <FileName>Serial.c</FileName>
+              <FileName>serial.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Hardware\Serial.c</FilePath>
+              <FilePath>.\Hardware\serial.c</FilePath>
             </File>
             <File>
-              <FileName>Serial.h</FileName>
+              <FileName>serial.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\Hardware\Serial.h</FilePath>
+              <FilePath>.\Hardware\serial.h</FilePath>
             </File>
             <File>
               <FileName>fifo.h</FileName>
@@ -669,64 +669,34 @@
               <FilePath>.\Hardware\fifo.h</FilePath>
             </File>
             <File>
-              <FileName>timer2_capture.c</FileName>
+              <FileName>capture.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Hardware\timer2_capture.c</FilePath>
+              <FilePath>.\Hardware\capture.c</FilePath>
             </File>
             <File>
-              <FileName>timer2_capture.h</FileName>
+              <FileName>capture.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\Hardware\timer2_capture.h</FilePath>
+              <FilePath>.\Hardware\capture.h</FilePath>
             </File>
             <File>
-              <FileName>timer3_gap.c</FileName>
+              <FileName>output.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Hardware\timer3_gap.c</FilePath>
+              <FilePath>.\Hardware\output.c</FilePath>
             </File>
             <File>
-              <FileName>timer3_gap.h</FileName>
+              <FileName>output.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\Hardware\timer3_gap.h</FilePath>
+              <FilePath>.\Hardware\output.h</FilePath>
             </File>
             <File>
-              <FileName>timer4_pulse.c</FileName>
+              <FileName>cmd.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Hardware\timer4_pulse.c</FilePath>
+              <FilePath>.\Hardware\cmd.c</FilePath>
             </File>
             <File>
-              <FileName>timer4_pulse.h</FileName>
+              <FileName>cmd.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\Hardware\timer4_pulse.h</FilePath>
-            </File>
-            <File>
-              <FileName>state_machine.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Hardware\state_machine.c</FilePath>
-            </File>
-            <File>
-              <FileName>state_machine.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Hardware\state_machine.h</FilePath>
-            </File>
-            <File>
-              <FileName>uart_cmd.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Hardware\uart_cmd.c</FilePath>
-            </File>
-            <File>
-              <FileName>uart_cmd.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Hardware\uart_cmd.h</FilePath>
-            </File>
-            <File>
-              <FileName>param_store.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Hardware\param_store.c</FilePath>
-            </File>
-            <File>
-              <FileName>param_store.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Hardware\param_store.h</FilePath>
+              <FilePath>.\Hardware\cmd.h</FilePath>
             </File>
           </Files>
         </Group>
