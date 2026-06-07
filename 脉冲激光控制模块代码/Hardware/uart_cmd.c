@@ -49,7 +49,7 @@ void process_uart_command(void)
 			}
 			else if (strcmp(cmd_buf, "HELP") == 0) {
 				Serial_SendString(
-					"GAP=<ms>  Set gap (100~50000)\r\n"
+					"GAP=<ms>  Set gap (1~50000)\r\n"
 					"GAP?      Query gap\r\n"
 					"SAVE      Save to Flash\r\n"
 					"STATUS?   Query status\r\n"

@@ -25,7 +25,7 @@ uint32_t param_load(void)
 			return p->gap_ms;
 		}
 	}
-	return 5000;	/* 默认值 5s */
+	return 100;	/* 默认值 100ms */
 }
 
 void param_save(uint32_t gap_ms)

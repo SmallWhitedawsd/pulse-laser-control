@@ -4,7 +4,7 @@
 #include "timer3_gap.h"
 
 volatile OutState g_out_state = IDLE;
-volatile uint32_t g_gap_ms = 5000;	/* 默认间隙 5000ms = 5s */
+volatile uint32_t g_gap_ms = 100;	/* 默认间隙 100ms */
 
 void process_pulse_output(void)
 {
