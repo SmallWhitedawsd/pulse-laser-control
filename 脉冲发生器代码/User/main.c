@@ -173,21 +173,42 @@ void Generator_Stop(void)
 /* ========== Command Parser ========== */
 void ParseCommand(void)
 {
-	/* ── combo: F=10000 D=50 N=10  (one line, space-separated, no prefix) ── */
-	{
-		uint32_t fv = 0, dv = 0, nv = 0;
-		if (sscanf(cmd_buf, "F=%lu D=%lu N=%lu", &fv, &dv, &nv) == 3) {
-			if (fv >= 1000 && fv <= 100000 && dv >= 1 && dv <= 99 && nv >= 1 && nv <= 500) {
-				gen_freq  = fv;
-				gen_duty  = dv;
-				gen_count = nv;
-				if (timer_inited) Update_PWM_Params();
-				UART_Printf("OK F=%luHz D=%lu%% N=%lu\r\n", fv, dv, nv);
+	uint32_t fv = 0, dv = 0, nv = 0;
+	int has_start = (strstr(cmd_buf, "START") != NULL);
+	int has_params = (sscanf(cmd_buf, "F=%lu D=%lu N=%lu", &fv, &dv, &nv) == 3);
+
+	/* ── START F=10000 D=50 N=10  or  F=10000 D=50 N=10 START ── */
+	if (has_start && has_params) {
+		if (fv >= 1000 && fv <= 100000 && dv >= 1 && dv <= 99 && nv >= 1 && nv <= 500) {
+			gen_freq  = fv;
+			gen_duty  = dv;
+			gen_count = nv;
+			if (!gen_running) {
+				Generator_Start();
+				/* Update_PWM_Params called inside Generator_Start */
 			} else {
-				UART_SendStr("ERR RANGE\r\n");
+				if (timer_inited) Update_PWM_Params();
+				UART_SendStr("ALREADY RUNNING\r\n");
 			}
 			return;
+		} else {
+			UART_SendStr("ERR RANGE\r\n");
+			return;
 		}
+	}
+
+	/* ── combo: F=10000 D=50 N=10 (set only, no start) ── */
+	if (has_params) {
+		if (fv >= 1000 && fv <= 100000 && dv >= 1 && dv <= 99 && nv >= 1 && nv <= 500) {
+			gen_freq  = fv;
+			gen_duty  = dv;
+			gen_count = nv;
+			if (timer_inited) Update_PWM_Params();
+			UART_Printf("OK F=%luHz D=%lu%% N=%lu\r\n", fv, dv, nv);
+		} else {
+			UART_SendStr("ERR RANGE\r\n");
+		}
+		return;
 	}
 
 	/* ── legacy single-param commands ── */
