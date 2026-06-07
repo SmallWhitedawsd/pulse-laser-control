@@ -58,8 +58,8 @@ void TIM2_IRQHandler(void)
 		uint16_t capture = TIM_GetCapture1(TIM2);
 
 		if (TIM2->CCER & TIM_CCER_CC1P) {
-			/* 下降沿 → 算脉宽 → 入队 */
-			uint16_t width = capture - capture_start;
+			/* 下降沿 → 算脉宽(μs) → 入队 */
+			uint16_t width = (capture - capture_start) / 72;  /* 72MHz→μs */
 			if (!FIFO_IS_FULL()) {
 				fifo_push(width);
 			}
