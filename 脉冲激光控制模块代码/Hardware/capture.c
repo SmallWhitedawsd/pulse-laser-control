@@ -60,8 +60,8 @@ void TIM2_IRQHandler(void)
 		uint16_t now = TIM_GetCapture1(TIM2);
 
 		if (TIM2->CCER & TIM_CCER_CC1P) {
-			/* falling edge → width = (now - start) / 72 (ticks→μs) */
-			uint16_t w = (now - start) / 72;
+			/* falling edge → width μs, force unsigned to survive TIM2 16-bit wrap */
+			uint16_t w = (uint16_t)(now - start) / 72U;
 			if (w > 0 && !fifo_full()) {
 				fifo_push(w);
 			}
