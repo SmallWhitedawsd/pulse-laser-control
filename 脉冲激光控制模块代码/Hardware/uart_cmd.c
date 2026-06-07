@@ -26,7 +26,7 @@ void process_uart_command(void)
 			/* ── 解析命令 ── */
 			if (strncmp(cmd_buf, "GAP=", 4) == 0) {
 				uint32_t val = atoi(cmd_buf + 4);
-				if (val >= 1000 && val <= 50000) {
+				if (val >= 100 && val <= 50000) {
 					g_gap_ms = val;
 					Serial_Printf("OK GAP=%lums\r\n", val);
 				} else {
@@ -49,7 +49,7 @@ void process_uart_command(void)
 			}
 			else if (strcmp(cmd_buf, "HELP") == 0) {
 				Serial_SendString(
-					"GAP=<ms>  Set gap (1000~50000)\r\n"
+					"GAP=<ms>  Set gap (100~50000)\r\n"
 					"GAP?      Query gap\r\n"
 					"SAVE      Save to Flash\r\n"
 					"STATUS?   Query status\r\n"

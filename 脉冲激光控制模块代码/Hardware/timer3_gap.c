@@ -26,7 +26,7 @@ void Timer3_Gap_Init(void)
 
 void deadtime_start(uint32_t gap_ms)
 {
-	deadtime_remaining_ms = gap_ms;
+	deadtime_remaining_ms = gap_ms; if (gap_ms == 0) { TIM_Cmd(TIM3, DISABLE); return; }
 	TIM3->CNT = 0;
 	TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 	TIM_Cmd(TIM3, ENABLE);
