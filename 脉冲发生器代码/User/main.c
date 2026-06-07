@@ -114,7 +114,7 @@ void Timer_Hardware_Init(void)
 
 	/* TIM2: 5s interval */
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
-	tim.TIM_Period    = 50000 - 1;
+	tim.TIM_Period    = 10000 - 1;  /* 1s: 72000000/7200=10000Hz, 10000tick=1s */
 	tim.TIM_Prescaler = 7200 - 1;
 	TIM_TimeBaseInit(TIM2, &tim);
 	TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
