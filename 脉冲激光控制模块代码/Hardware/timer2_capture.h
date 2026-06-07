@@ -6,6 +6,4 @@
 void Timer2_Capture_Init(void);
 void Timer2_Capture_Enable(void);
 
-extern volatile uint8_t timer2_first_pulse_bypassed;
-
 #endif
