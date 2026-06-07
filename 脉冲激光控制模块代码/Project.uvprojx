@@ -698,6 +698,16 @@
               <FileType>5</FileType>
               <FilePath>.\Hardware\cmd.h</FilePath>
             </File>
+            <File>
+              <FileName>config.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Hardware\config.c</FilePath>
+            </File>
+            <File>
+              <FileName>config.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Hardware\config.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
