@@ -105,7 +105,7 @@ void Timer_Hardware_Init(void)
 	oc.TIM_OCPolarity   = TIM_OCPolarity_High;
 	TIM_OC1Init(TIM3, &oc);
 	TIM_OC1PreloadConfig(TIM3, TIM_OCPreload_Enable);
-	TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
+	TIM_ITConfig(TIM3, TIM_IT_Update | TIM_IT_CC1, ENABLE);
 
 	NVIC_InitTypeDef nvic = {0};
 	nvic.NVIC_IRQChannel    = TIM3_IRQn;
@@ -172,7 +172,6 @@ void Generator_Start(void)
 	gen_cur_pulse = 0;
 	interval_cnt  = gen_interval - 1; /* first round fires immediately */
 	Update_PWM_Params();
-	TIM3->CCMR1 = (TIM3->CCMR1 & ~0x0070) | 0x0060; /* restore PWM1 mode */
 	TIM_SetCounter(TIM3, 0);
 	TIM_SetCounter(TIM2, 0);
 	TIM_Cmd(TIM2, ENABLE);
@@ -328,7 +327,6 @@ void TIM2_IRQHandler(void)
 				pulse_cnt     = 0;
 				gen_cur_pulse = 0;
 				Update_PWM_Params();
-				TIM3->CCMR1 = (TIM3->CCMR1 & ~0x0070) | 0x0060;
 				TIM_Cmd(TIM3, ENABLE);
 			}
 		}
@@ -337,15 +335,22 @@ void TIM2_IRQHandler(void)
 
 void TIM3_IRQHandler(void)
 {
-	if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET) {
-		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
+	if (TIM_GetITStatus(TIM3, TIM_IT_CC1) != RESET) {
+		TIM_ClearITPendingBit(TIM3, TIM_IT_CC1);
+		/* CC1 match = output just went LOW, one full pulse completed */
 		pulse_cnt++;
 		gen_cur_pulse = pulse_cnt;
 		if (pulse_cnt >= gen_count) {
+			/* Nth pulse just finished gracefully, output already LOW */
 			TIM_Cmd(TIM3, DISABLE);
-			TIM_ForcedOC1Config(TIM3, TIM_ForcedAction_InActive);
+			TIM_ClearITPendingBit(TIM3, TIM_IT_Update); /* suppress stale update */
 			gen_rounds++;
 		}
+	}
+
+	if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET) {
+		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
+		/* Update = next pulse starting. Nothing to do here. */
 	}
 }
 
