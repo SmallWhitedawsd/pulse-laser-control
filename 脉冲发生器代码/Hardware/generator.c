@@ -1,7 +1,6 @@
 #include "generator.h"
 #include "Serial.h"
 
-/* ── 参数 ── */
 volatile uint32_t gen_freq_hz      = 10000;
 volatile uint32_t gen_duty_pct     = 50;
 volatile uint32_t gen_pulse_count  = 5;
@@ -9,13 +8,17 @@ volatile uint8_t  gen_running      = 0;
 volatile uint32_t gen_current_pulse = 0;
 volatile uint32_t gen_total_rounds  = 0;
 
-static volatile uint32_t pulse_cnt  = 0;
+static volatile uint32_t pulse_cnt = 0;
+static uint8_t timers_ready = 0;   /* 0=未初始化, 1=已就绪 */
 
-/**
-  * TIM3: PWM 输出 → PA6
-  */
-static void Generator_TIM3_Init(void)
+void Generator_Init(void)
 {
+	/* 先什么都不做，保证串口能跑 */
+}
+
+static void Generator_Hardware_Init(void)
+{
+	/* ── PA6: TIM3_CH1 PWM 输出 ── */
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
 
@@ -48,42 +51,25 @@ static void Generator_TIM3_Init(void)
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_Init(&NVIC_InitStructure);
-}
 
-/**
-  * TIM2: 5 秒间隔 → 5s 后启动新一轮 PWM
-  */
-static void Generator_TIM2_Init(void)
-{
+	/* ── TIM2: 5 秒间隔 ── */
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
 
-	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 	TIM_TimeBaseStructure.TIM_Period = 50000 - 1;
 	TIM_TimeBaseStructure.TIM_Prescaler = 7200 - 1;
-	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseInit(TIM2, &TIM_TimeBaseStructure);
 
 	TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
 
-	NVIC_InitTypeDef NVIC_InitStructure;
 	NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_Init(&NVIC_InitStructure);
+
+	timers_ready = 1;
 }
 
-void Generator_Init(void)
-{
-	Generator_TIM3_Init();
-	Generator_TIM2_Init();
-}
-
-/**
-  * 根据 freq/duty 更新 TIM3 参数
-  */
-void Generator_UpdateParams(void)
+static void Generator_UpdateParams(void)
 {
 	uint32_t freq = gen_freq_hz;
 	uint32_t duty = gen_duty_pct;
@@ -93,7 +79,6 @@ void Generator_UpdateParams(void)
 	if (duty < 1)    duty = 1;
 	if (duty > 99)   duty = 99;
 
-	/* 目标 ARR=999 以保证 0.1% 占空比精度 */
 	uint32_t arr = 999;
 	uint32_t psc = 72000000UL / (freq * (arr + 1));
 
@@ -116,37 +101,49 @@ void Generator_UpdateParams(void)
 	TIM3->CCR1 = ccr;
 }
 
+void Generator_Start(void)
+{
+	if (!timers_ready) {
+		Generator_Hardware_Init();
+	}
+	gen_running = 1;
+	pulse_cnt = 0;
+	gen_current_pulse = 0;
+
+	Generator_UpdateParams();
+	TIM_SetCounter(TIM2, 0);
+	TIM_Cmd(TIM2, ENABLE);       /* TIM2 开始周期性 5s 计时 */
+	TIM_Cmd(TIM3, ENABLE);       /* 立即输出第一轮 */
+}
+
+void Generator_Stop(void)
+{
+	gen_running = 0;
+	TIM_Cmd(TIM2, DISABLE);
+	TIM_Cmd(TIM3, DISABLE);
+}
+
 /* ──── ISR ──── */
 
-/**
-  * TIM2: 每 5s → 启动一轮脉冲
-  */
 void TIM2_IRQHandler(void)
 {
 	if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET) {
 		TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
-
 		if (gen_running) {
 			pulse_cnt = 0;
 			gen_current_pulse = 0;
-
 			Generator_UpdateParams();
 			TIM_Cmd(TIM3, ENABLE);
 		}
 	}
 }
 
-/**
-  * TIM3: 溢出 = 一个脉冲完成
-  */
 void TIM3_IRQHandler(void)
 {
 	if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET) {
 		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
-
 		pulse_cnt++;
 		gen_current_pulse = pulse_cnt;
-
 		if (pulse_cnt >= gen_pulse_count) {
 			TIM_Cmd(TIM3, DISABLE);
 			gen_total_rounds++;

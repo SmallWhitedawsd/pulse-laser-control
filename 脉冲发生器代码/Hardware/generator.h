@@ -11,6 +11,7 @@ extern volatile uint32_t gen_current_pulse;
 extern volatile uint32_t gen_total_rounds;
 
 void Generator_Init(void);
-void Generator_UpdateParams(void);
+void Generator_Start(void);
+void Generator_Stop(void);
 
 #endif
