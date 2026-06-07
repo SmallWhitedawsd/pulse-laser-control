@@ -59,6 +59,8 @@ void TIM2_IRQHandler(void)
 	if (TIM_GetITStatus(TIM2, TIM_IT_CC1) == SET) {
 		TIM_ClearITPendingBit(TIM2, TIM_IT_CC1);
 
+		if (test_mode) return;  /* ignore all input during TEST */
+
 		uint16_t capture = TIM_GetCapture1(TIM2);
 
 		if (TIM2->CCER & TIM_CCER_CC1P) {
