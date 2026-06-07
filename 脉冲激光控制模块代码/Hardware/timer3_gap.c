@@ -1,5 +1,4 @@
 #include "timer3_gap.h"
-#include "state_machine.h"
 
 volatile uint32_t deadtime_remaining_ms = 0;
 
@@ -27,7 +26,7 @@ void Timer3_Gap_Init(void)
 
 void deadtime_start(uint32_t gap_ms)
 {
-	deadtime_remaining_ms = gap_ms; if (gap_ms == 0) { TIM_Cmd(TIM3, DISABLE); return; }
+	deadtime_remaining_ms = gap_ms;
 	TIM3->CNT = 0;
 	TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 	TIM_Cmd(TIM3, ENABLE);
@@ -37,13 +36,6 @@ void TIM3_IRQHandler(void)
 {
 	if (TIM_GetITStatus(TIM3, TIM_IT_Update) == SET) {
 		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
-
-		if (test_mode) {
-			/* toggle PA1 every 500ms → 1Hz square wave */
-			GPIOA->ODR ^= GPIO_Pin_1;
-			return;
-		}
-
 		if (--deadtime_remaining_ms == 0) {
 			TIM_Cmd(TIM3, DISABLE);
 		}
