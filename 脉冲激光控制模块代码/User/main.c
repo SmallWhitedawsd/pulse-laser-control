@@ -43,6 +43,8 @@ int main(void)
 	Serial_Printf("Pulse Laser Control v2\r\n");
 	Serial_Printf("GAP=%lums, Stream: N in -> N out\r\n", g_gap_ms);
 
+	Timer2_Capture_Enable();    /* now start capturing — PA0 already connected */
+
 	while (1) {
 		process_pulse_output();		/* 消费者状态机 */
 		process_uart_command();		/* 串口命令解析 */

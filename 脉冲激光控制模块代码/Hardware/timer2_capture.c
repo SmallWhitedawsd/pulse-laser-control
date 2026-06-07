@@ -45,6 +45,11 @@ void Timer2_Capture_Init(void)
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_Init(&NVIC_InitStructure);
 
+	/* TIM2 counter enabled later (after welcome message) to avoid floating PA0 triggering ISRs */
+}
+
+void Timer2_Capture_Enable(void)
+{
 	TIM_Cmd(TIM2, ENABLE);
 }
 
