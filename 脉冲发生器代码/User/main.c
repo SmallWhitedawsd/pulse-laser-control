@@ -179,7 +179,9 @@ void ParseCommand(void)
 {
 	uint32_t fv = 0, dv = 0, nv = 0;
 	int has_start = (strstr(cmd_buf, "START") != NULL);
-	int has_params = (sscanf(cmd_buf, "F=%lu D=%lu N=%lu", &fv, &dv, &nv) == 3);
+	/* scan from "F=" wherever it appears in the string */
+	char *fp = strstr(cmd_buf, "F=");
+	int has_params = (fp && sscanf(fp, "F=%lu D=%lu N=%lu", &fv, &dv, &nv) == 3);
 
 	/* ── START F=10000 D=50 N=10  or  F=10000 D=50 N=10 START ── */
 	if (has_start && has_params) {
