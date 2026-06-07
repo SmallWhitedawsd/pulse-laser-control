@@ -156,6 +156,8 @@ void Generator_Start(void)
 	pulse_cnt     = 0;
 	gen_cur_pulse = 0;
 	Update_PWM_Params();
+	TIM3->CCMR1 = (TIM3->CCMR1 & ~0x0070) | 0x0060; /* restore PWM1 mode */
+	TIM_SetCounter(TIM3, 0);
 	TIM_SetCounter(TIM2, 0);
 	TIM_Cmd(TIM2, ENABLE);
 	TIM_Cmd(TIM3, ENABLE);
@@ -167,6 +169,8 @@ void Generator_Stop(void)
 	gen_running = 0;
 	TIM_Cmd(TIM2, DISABLE);
 	TIM_Cmd(TIM3, DISABLE);
+	/* 强制 PA6 输出低电平 */
+	TIM_ForcedOC1Config(TIM3, TIM_ForcedAction_InActive);
 	UART_SendStr("STOPPED\r\n");
 }
 
@@ -275,6 +279,7 @@ void TIM2_IRQHandler(void)
 			pulse_cnt     = 0;
 			gen_cur_pulse = 0;
 			Update_PWM_Params();
+			TIM3->CCMR1 = (TIM3->CCMR1 & ~0x0070) | 0x0060;
 			TIM_Cmd(TIM3, ENABLE);
 		}
 	}
@@ -288,6 +293,7 @@ void TIM3_IRQHandler(void)
 		gen_cur_pulse = pulse_cnt;
 		if (pulse_cnt >= gen_count) {
 			TIM_Cmd(TIM3, DISABLE);
+			TIM_ForcedOC1Config(TIM3, TIM_ForcedAction_InActive);
 			gen_rounds++;
 		}
 	}
@@ -297,6 +303,15 @@ void TIM3_IRQHandler(void)
 int main(void)
 {
 	UART_Init();
+
+	/* PA6 初始化为推挽输出低电平, START 后由 TIM3 AF 接管 */
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+	GPIO_InitTypeDef gpio = {0};
+	gpio.GPIO_Mode  = GPIO_Mode_Out_PP;
+	gpio.GPIO_Pin   = GPIO_Pin_6;
+	gpio.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA, &gpio);
+	GPIO_ResetBits(GPIOA, GPIO_Pin_6);
 
 	UART_SendStr("Pulse Gen v1 (START to begin)\r\n");
 
