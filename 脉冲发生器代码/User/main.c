@@ -67,9 +67,9 @@ void UART_Printf(const char *fmt, ...)
 }
 
 /* ========== 脉冲发生器参数 ========== */
-uint32_t gen_freq      = 10000;   /* 1KHz~100KHz */
-uint32_t gen_duty      = 50;      /* 1~99% */
-uint32_t gen_count     = 5;       /* 每轮脉冲数 */
+uint32_t gen_freq      = 10000;    /* 1KHz~100KHz */
+uint32_t gen_duty      = 50;       /* 1~99% */
+uint32_t gen_count     = 5;        /* 每轮脉冲数 */
 uint8_t  gen_running   = 0;
 uint32_t gen_cur_pulse = 0;
 uint32_t gen_rounds    = 0;
@@ -152,14 +152,14 @@ void Update_PWM_Params(void)
 void Generator_Start(void)
 {
 	if (!timer_inited) Timer_Hardware_Init();
-	gen_running  = 1;
-	pulse_cnt    = 0;
+	gen_running   = 1;
+	pulse_cnt     = 0;
 	gen_cur_pulse = 0;
 	Update_PWM_Params();
 	TIM_SetCounter(TIM2, 0);
 	TIM_Cmd(TIM2, ENABLE);
 	TIM_Cmd(TIM3, ENABLE);
-	UART_SendStr("STARTED\r\n");
+	UART_SendStr("已启动, 每5秒发出一轮脉冲\r\n");
 }
 
 void Generator_Stop(void)
@@ -167,7 +167,7 @@ void Generator_Stop(void)
 	gen_running = 0;
 	TIM_Cmd(TIM2, DISABLE);
 	TIM_Cmd(TIM3, DISABLE);
-	UART_SendStr("STOPPED\r\n");
+	UART_SendStr("已停止\r\n");
 }
 
 /* ========== 命令解析 ========== */
@@ -178,45 +178,49 @@ void ParseCommand(void)
 		if (v >= 1000 && v <= 100000) {
 			gen_freq = v;
 			if (timer_inited) Update_PWM_Params();
-			UART_Printf("OK FREQ=%dHz\r\n", v);
-		} else UART_SendStr("ERR RANGE\r\n");
+			UART_Printf("OK 频率=%dHz\r\n", v);
+		} else UART_SendStr("错误: 频率范围1000~100000Hz\r\n");
 	}
 	else if (strncmp(cmd_buf, "DUTY=", 5) == 0) {
 		int v = atoi(cmd_buf + 5);
 		if (v >= 1 && v <= 99) {
 			gen_duty = v;
 			if (timer_inited) Update_PWM_Params();
-			UART_Printf("OK DUTY=%d%%\r\n", v);
-		} else UART_SendStr("ERR RANGE\r\n");
+			UART_Printf("OK 占空比=%d%%\r\n", v);
+		} else UART_SendStr("错误: 占空比范围1~99%\r\n");
 	}
 	else if (strncmp(cmd_buf, "PULSES=", 7) == 0) {
 		int v = atoi(cmd_buf + 7);
 		if (v >= 1 && v <= 500) {
 			gen_count = v;
-			UART_Printf("OK PULSES=%d\r\n", v);
-		} else UART_SendStr("ERR RANGE\r\n");
+			UART_Printf("OK 每轮脉冲数=%d\r\n", v);
+		} else UART_SendStr("错误: 脉冲数范围1~500\r\n");
 	}
 	else if (strcmp(cmd_buf, "START") == 0) {
 		if (!gen_running) Generator_Start();
-		else UART_SendStr("ALREADY RUNNING\r\n");
+		else UART_SendStr("已在运行中\r\n");
 	}
 	else if (strcmp(cmd_buf, "STOP") == 0) {
 		Generator_Stop();
 	}
 	else if (strcmp(cmd_buf, "STATUS?") == 0) {
 		UART_Printf(
-			"STATE=%s F=%luHz D=%lu%% N=%lu CUR=%lu RND=%lu\r\n",
-			gen_running ? "RUN" : "STOP",
+			"状态=%s 频率=%luHz 占空比=%lu%% 每轮脉冲=%lu 当前=%lu 已发轮数=%lu\r\n",
+			gen_running ? "运行中" : "已停止",
 			gen_freq, gen_duty, gen_count, gen_cur_pulse, gen_rounds);
 	}
 	else if (strcmp(cmd_buf, "HELP") == 0) {
 		UART_SendStr(
-			"FREQ=xxx   Hz (1000~100000)\r\n"
-			"DUTY=xx    %% (1~99)\r\n"
-			"PULSES=N   Per round (1~500)\r\n"
-			"START/STOP/STATUS?/HELP\r\n");
+			"===== 脉冲发生器命令 =====\r\n"
+			"FREQ=10000    频率 Hz (1000~100000)\r\n"
+			"DUTY=50       占空比 % (1~99)\r\n"
+			"PULSES=5      每轮脉冲数 (1~500)\r\n"
+			"START         启动 (每5秒一轮)\r\n"
+			"STOP          停止\r\n"
+			"STATUS?       查看当前状态\r\n"
+			"HELP          显示帮助\r\n");
 	}
-	else UART_SendStr("ERR FORMAT\r\n");
+	else UART_SendStr("错误: 无效命令, 发送 HELP 查看帮助\r\n");
 }
 
 /* ========== ISR ========== */
@@ -234,7 +238,7 @@ void TIM2_IRQHandler(void)
 	if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET) {
 		TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
 		if (gen_running) {
-			pulse_cnt    = 0;
+			pulse_cnt     = 0;
 			gen_cur_pulse = 0;
 			Update_PWM_Params();
 			TIM_Cmd(TIM3, ENABLE);
@@ -260,12 +264,11 @@ int main(void)
 {
 	UART_Init();
 
-	UART_SendStr("\r\nPulse Generator v1\r\n");
-	UART_Printf("FREQ=%luHz DUTY=%lu%% PULSES=%lu\r\n", gen_freq, gen_duty, gen_count);
-	UART_SendStr("Type HELP for commands.\r\n");
+	UART_SendStr("\r\n===== 脉冲发生器 V1 =====\r\n");
+	UART_Printf("频率=%luHz 占空比=%lu%% 每轮脉冲=%lu\r\n", gen_freq, gen_duty, gen_count);
+	UART_SendStr("发送 HELP 查看命令列表\r\n");
 
 	while (1) {
-		/* 处理串口命令 */
 		while (Serial_RxFlag) {
 			Serial_RxFlag = 0;
 			char ch = Serial_RxData;
