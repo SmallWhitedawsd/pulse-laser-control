@@ -16,8 +16,9 @@ volatile uint32_t raw_period_ticks = 0;   /* ISR stores period between rising ed
 static volatile uint32_t pulse_cnt;
 static volatile uint32_t tim3_ms;
 
-/* frequency measurement — ISR side (no division, just store period) */
-static volatile uint16_t prev_rise_ccr;
+/* frequency measurement — ISR side (no division, 32-bit timestamps via ovf counter) */
+static volatile uint32_t tim2_ovf32;       /* TIM2 overflow counter for 32-bit timestamp */
+static volatile uint32_t prev_ts32;        /* previous rising-edge 32-bit timestamp */
 static volatile uint8_t  prev_rise_valid;
 
 typedef enum { S_FORWARD, S_SILENCE } gate_t;
@@ -52,6 +53,7 @@ void Output_Init(void)
 	ic.TIM_ICPrescaler = TIM_ICPSC_DIV1;
 	TIM_ICInit(TIM2, &ic);
 	TIM_ITConfig(TIM2, TIM_IT_CC1, ENABLE);
+	TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);   /* for 32-bit overflow counting */
 
 	NVIC_InitTypeDef n = {0};
 	n.NVIC_IRQChannel    = TIM2_IRQn;
@@ -101,9 +103,16 @@ void Output_Resync(void)
 
 void TIM2_IRQHandler(void)
 {
+	/* handle overflow first — keeps tim2_ovf32 up-to-date for CC1 timestamp */
+	if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET) {
+		TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
+		tim2_ovf32++;
+	}
+
 	if (TIM_GetITStatus(TIM2, TIM_IT_CC1) != RESET) {
 		TIM_ClearITPendingBit(TIM2, TIM_IT_CC1);
 		uint16_t ccr = TIM_GetCapture1(TIM2);
+		uint32_t cur_ts = ((uint32_t)tim2_ovf32 << 16) | ccr;
 
 		if (TIM2->CCER & TIM_CCER_CC1P) {
 			if (gate == S_FORWARD && pulse_cnt > 0) {
@@ -118,16 +127,15 @@ void TIM2_IRQHandler(void)
 				}
 			}
 		} else {
-			/* store raw period between rising edges (no division in ISR) */
+			/* 32-bit period between rising edges (no division in ISR) */
 			if (prev_rise_valid) {
-				uint32_t period = (ccr >= prev_rise_ccr)
-					? (ccr - prev_rise_ccr)
-					: (ccr + 65536UL - prev_rise_ccr);
-				if (period > 0) {
+				uint32_t period = cur_ts - prev_ts32;
+				/* valid range: 720 ticks (100KHz) ~ 72000 ticks (1KHz) */
+				if (period >= 720 && period <= 72000) {
 					raw_period_ticks = period;
 				}
 			}
-			prev_rise_ccr = ccr;
+			prev_ts32 = cur_ts;
 			prev_rise_valid = 1;
 
 			if (gate == S_FORWARD) {
