@@ -5,8 +5,8 @@
 #include <stdarg.h>
 #include "serial.h"
 
-uint8_t uart_rx_data;
-uint8_t uart_rx_flag;
+volatile uint8_t uart_rx_data;
+volatile uint8_t uart_rx_flag;
 
 void UART_Init(void)
 {

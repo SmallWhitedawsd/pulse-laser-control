@@ -5,8 +5,8 @@
 
 #include "stm32f10x.h"
 
-extern uint8_t uart_rx_data;
-extern uint8_t uart_rx_flag;
+extern volatile uint8_t uart_rx_data;
+extern volatile uint8_t uart_rx_flag;
 
 void UART_Init(void);
 void UART_SendByte(uint8_t b);

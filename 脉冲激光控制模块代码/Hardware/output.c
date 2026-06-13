@@ -73,6 +73,7 @@ void Output_Poll(void) {}
 
 void Output_Resync(void)
 {
+	TIM_Cmd(TIM3, DISABLE);          /* stop gap timer if running */
 	gate = S_FORWARD;
 	pulse_cnt = 0;
 	GPIO_ResetBits(GPIOA, GPIO_Pin_1);
@@ -122,6 +123,11 @@ void TIM3_IRQHandler(void)
 			if (tim3_ms == 0) {
 				TIM_Cmd(TIM3, DISABLE);
 				gate = S_FORWARD;
+				/* resync edge polarity with current input level */
+				if (GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_0))
+					TIM2->CCER |= TIM_CCER_CC1P;
+				else
+					TIM2->CCER &= ~TIM_CCER_CC1P;
 			}
 		}
 	}

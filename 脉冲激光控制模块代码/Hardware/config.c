@@ -20,6 +20,9 @@ void Config_Load(void)
 
 void Config_Save(void)
 {
+	uint8_t tim3_was_running = (TIM3->CR1 & TIM_CR1_CEN);
+	TIM_Cmd(TIM3, DISABLE);          /* pause gap timer during flash stall */
+
 	FLASH_Unlock();
 
 	FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_WRPRTERR);
@@ -30,6 +33,11 @@ void Config_Save(void)
 	FLASH_ProgramWord(CONFIG_PAGE_ADDR + 4, burst_delay);
 
 	FLASH_Lock();
+
+	if (tim3_was_running) {           /* restore gap timer */
+		TIM3->CNT = 0;
+		TIM_Cmd(TIM3, ENABLE);
+	}
 
 	/* reset gate state after CPU stall */
 	Output_Resync();
