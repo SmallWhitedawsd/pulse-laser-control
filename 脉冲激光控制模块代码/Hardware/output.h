@@ -7,7 +7,6 @@
 
 extern volatile uint32_t burst_count;
 extern volatile uint32_t burst_delay;
-extern volatile uint32_t input_freq_hz;   /* measured input frequency, 0 = unknown */
 
 void Output_Init(void);
 void Output_Poll(void);
