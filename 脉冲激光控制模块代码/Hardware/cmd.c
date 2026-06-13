@@ -14,17 +14,32 @@
 static char buf[32];
 static uint8_t idx;
 
+static uint32_t n_max(void)
+{
+	/* N upper bound = 1 second worth of pulses = input frequency in Hz.
+	 * Floor 1000, ceiling 1000000. If no signal yet, default to 65535. */
+	if (input_freq_hz == 0) return 65535;
+	if (input_freq_hz < 1000) return 1000;
+	if (input_freq_hz > 1000000) return 1000000;
+	return input_freq_hz;
+}
+
 static void dispatch(void)
 {
 	char *pN = strstr(buf, "N=");
 	char *pT = strstr(buf, "T=");
 	uint32_t nv = burst_count, tv = burst_delay;
 	int n_ok = 0, t_ok = 0;
+	uint32_t nmax = n_max();
 
 	if (pN) {
 		int v = atoi(pN + 2);
-		if (v >= 1 && v <= 65535) { nv = v; n_ok = 1; }
-		else { UART_SendStr("ERR N RANGE (1~65535)\r\n"); return; }
+		if (v >= 1 && (uint32_t)v <= nmax) {
+			nv = v; n_ok = 1;
+		} else {
+			UART_Printf("ERR N RANGE (1~%lu)\r\n", nmax);
+			return;
+		}
 	}
 	if (pT) {
 		int v = atoi(pT + 2);
@@ -39,7 +54,8 @@ static void dispatch(void)
 		UART_Printf("OK N=%lu T=%lums\r\n", burst_count, burst_delay);
 	}
 	else if (strcmp(buf, "STATUS?") == 0) {
-		UART_Printf("N=%lu T=%lums\r\n", burst_count, burst_delay);
+		UART_Printf("Fin=%luHz N=%lu/%lu T=%lums\r\n",
+			input_freq_hz, burst_count, nmax, burst_delay);
 	}
 }
 
