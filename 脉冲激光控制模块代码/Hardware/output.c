@@ -10,9 +10,15 @@
 
 volatile uint32_t burst_count = 2;
 volatile uint32_t burst_delay = 2;
+volatile uint32_t input_freq_hz = 0;      /* computed in Output_Poll from raw_period_ticks */
+volatile uint32_t raw_period_ticks = 0;   /* ISR stores period between rising edges (72MHz ticks) */
 
 static volatile uint32_t pulse_cnt;
 static volatile uint32_t tim3_ms;
+
+/* frequency measurement — ISR side (no division, just store period) */
+static volatile uint16_t prev_rise_ccr;
+static volatile uint8_t  prev_rise_valid;
 
 typedef enum { S_FORWARD, S_SILENCE } gate_t;
 static volatile gate_t gate = S_FORWARD;
@@ -69,7 +75,14 @@ void Output_Init(void)
 	TIM_Cmd(TIM2, ENABLE);
 }
 
-void Output_Poll(void) {}
+void Output_Poll(void)
+{
+	/* compute frequency from raw period (expensive 32-bit division, done here not in ISR) */
+	uint32_t p = raw_period_ticks;
+	if (p > 0) {
+		input_freq_hz = 72000000UL / p;
+	}
+}
 
 void Output_Resync(void)
 {
@@ -90,7 +103,7 @@ void TIM2_IRQHandler(void)
 {
 	if (TIM_GetITStatus(TIM2, TIM_IT_CC1) != RESET) {
 		TIM_ClearITPendingBit(TIM2, TIM_IT_CC1);
-		(void)TIM_GetCapture1(TIM2);
+		uint16_t ccr = TIM_GetCapture1(TIM2);
 
 		if (TIM2->CCER & TIM_CCER_CC1P) {
 			if (gate == S_FORWARD && pulse_cnt > 0) {
@@ -105,6 +118,18 @@ void TIM2_IRQHandler(void)
 				}
 			}
 		} else {
+			/* store raw period between rising edges (no division in ISR) */
+			if (prev_rise_valid) {
+				uint32_t period = (ccr >= prev_rise_ccr)
+					? (ccr - prev_rise_ccr)
+					: (ccr + 65536UL - prev_rise_ccr);
+				if (period > 0) {
+					raw_period_ticks = period;
+				}
+			}
+			prev_rise_ccr = ccr;
+			prev_rise_valid = 1;
+
 			if (gate == S_FORWARD) {
 				pulse_cnt++;
 				GPIO_SetBits(GPIOA, GPIO_Pin_1);
